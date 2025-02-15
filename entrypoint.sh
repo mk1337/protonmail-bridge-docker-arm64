@@ -29,14 +29,14 @@ initialize() {
 start_bridge() {
     echo "Starting ProtonMail Bridge in daemon mode..."
 
-    # Bind SMTP (1025) and IMAP (1143) to ALL interfaces (not just 127.0.0.1)
-    socat TCP-LISTEN:25,fork TCP:0.0.0.0:1025 &
-    socat TCP-LISTEN:143,fork TCP:0.0.0.0:1143 &
+    # Bind SMTP (1025) and IMAP (1143)
+    socat TCP-LISTEN:25,fork TCP:127.0.0.1:1025 &
+    socat TCP-LISTEN:143,fork TCP:127.0.0.1:1143 &
 
     # Ensure a fake terminal to prevent EOF issues
     rm -f faketty
     mkfifo faketty
-    cat faketty | exec /protonmail/proton-bridge --cli daemon --bind-addr=0.0.0.0
+    cat faketty | exec /protonmail/proton-bridge --cli
 }
 
 # Entry point logic

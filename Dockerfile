@@ -11,7 +11,6 @@ RUN bash build.sh
 
 # Use Debian-based image for better package support
 FROM debian:bookworm
-LABEL maintainer="Xiaonan Shen <s@sxn.dev>"
 
 EXPOSE 25/tcp
 EXPOSE 143/tcp
@@ -29,7 +28,7 @@ RUN apt-get update && apt-get install -y \
     dnsutils \
     socat \
     libsecret-1-0 \
-    ca-certificates \ 
+    ca-certificates \
     libglib2.0-0 \
     libgtk-3-0 \
     libsoup2.4-1 \
