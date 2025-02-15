@@ -1,93 +1,78 @@
-# ProtonMail IMAP/SMTP Bridge Docker Container
+# ProtonMail Bridge for ARM64 (Raspberry Pi)
 
-![version badge](https://img.shields.io/docker/v/shenxn/protonmail-bridge)
-![image size badge](https://img.shields.io/docker/image-size/shenxn/protonmail-bridge/build)
-![docker pulls badge](https://img.shields.io/docker/pulls/shenxn/protonmail-bridge)
-![deb badge](https://github.com/shenxn/protonmail-bridge-docker/workflows/pack%20from%20deb/badge.svg)
-![build badge](https://github.com/shenxn/protonmail-bridge-docker/workflows/build%20from%20source/badge.svg)
+This repository provides a **Dockerized version of ProtonMail Bridge** ([Official Repository](https://github.com/ProtonMail/proton-bridge)) specifically modified to work on **ARM64-based Raspberry Pi devices**. It is based on the original [shenxn/protonmail-bridge-docker](https://github.com/shenxn/protonmail-bridge-docker) project, which appears to be unmaintained.
 
-This is an unofficial Docker container of the [ProtonMail Bridge](https://protonmail.com/bridge/). Some of the scripts are based on [Hendrik Meyer's work](https://gitlab.com/T4cC0re/protonmail-bridge-docker).
+## 🛠️ Initial Development
 
-Docker Hub: [https://hub.docker.com/r/shenxn/protonmail-bridge](https://hub.docker.com/r/shenxn/protonmail-bridge)
+This is the first iteration of ARM64 support, completed over half a weekend with ChatGPT's assistance to get it running successfully on my Raspberry Pi. The changes made so far allow it to work on **my machine**, and I hope this will be useful for others as well. The Dockerfile can likely be further optimized and slimmed down. Contributions and pull requests to enhance it further are highly encouraged!
 
-GitHub: [https://github.com/shenxn/protonmail-bridge-docker](https://github.com/shenxn/protonmail-bridge-docker)
+## 🚀 What's Changed
 
-## ARM Support
+This fork focuses on **ARM64 support** and ease of deployment on Raspberry Pi devices.
 
-We now support ARM devices (`arm64` and `arm/v7`)! Use the images tagged with `build`. See next section for details.
+### **🔹 Major Changes in the Dockerfile**
 
-## Tags
+- **Switched to a Debian-based base image and updated the Go build image to the latest supported version** instead of Ubuntu for improved compatibility.
+- **Fixed missing dependencies** that prevented ProtonMail Bridge from running:
+  - Installed essential libraries (`libsecret-1-0`, `libglib-2.0`, `libgobject-2.0`).
+  - Added utilities (`net-tools`, `procps`, `socat`, `iproute2`) for easier debugging.
+- **Updated the build process** to ensure correct compilation on ARM64.
+- **Removed the **``** folder and moved all files to the main directory** to streamline the build since this repo is specifically targeting ARM64. to streamline the build since this repo is specifically targeting ARM64.
 
-There are two types of images.
- - `deb`: Images based on the official [.deb release](https://protonmail.com/bridge/install). It only supports the `amd64` architecture.
- - `build`: Images based on the [source code](https://github.com/ProtonMail/proton-bridge). It supports `amd64`, `arm64`, `arm/v7` and `riscv64`. Supporting to more architectures is possible. PRs are welcome.
+### **🔹 Improvements in EntryPoint Script**
 
-tag | description
- -- | --
-`latest` | latest `deb` image
-`[version]` | `deb` images
-`build` | latest `build` image
-`[version]-build` | `build` images
+- Fixed issues related to process management by ensuring required utilities are installed.
+- Ensured **pass & GPG key initialization** works properly without requiring a passphrase.
+- Addressed issues where ProtonMail Bridge could not start due to missing dependencies.
+- Improved logging for easier debugging.
 
-## Initialization
+## 📌 Supported Platforms
 
-To initialize and add account to the bridge, run the following command.
+This version has been tested to work on: ✅ **Raspberry Pi 4 (8GB RAM)** running the latest **Raspberry Pi OS (64-bit)**.
 
-```
-docker run --rm -it -v protonmail:/root shenxn/protonmail-bridge init
-```
+## 🚀 How to Build and Run
 
-If you want to use Docker Compose instead, you can create a copy of the provided example [docker-compose.yml](docker-compose.yml) file, modify it to suit your needs, and then run the following command:
+### **1️⃣ Build the Docker Image**
 
-```
-docker compose run protonmail-bridge init
+```sh
+docker buildx build --platform linux/arm64 -t protonmail-bridge-arm64 .
 ```
 
-Wait for the bridge to startup, then you will see a prompt appear for [Proton Mail Bridge interactive shell](https://proton.me/support/bridge-cli-guide). Use the `login` command and follow the instructions to add your account into the bridge. Then use `info` to see the configuration information (username and password). After that, use `exit` to exit the bridge. You may need `CTRL+C` to exit the docker entirely.
+### **2️⃣ Run the Container**
 
-## Run
-
-To run the container, use the following command.
-
-```
-docker run -d --name=protonmail-bridge -v protonmail:/root -p 1025:25/tcp -p 1143:143/tcp --restart=unless-stopped shenxn/protonmail-bridge
+```sh
+docker run --rm -it -v protonmail:/root protonmail-bridge-arm64
 ```
 
-Or, if using Docker Compose, use the following command.
+## 🔧 Troubleshooting & Known Issues
 
-```
-docker compose up -d
-```
+### **Bridge Only Listens on 127.0.0.1**
 
-## Kubernetes
+By default, ProtonMail Bridge **only listens on **``, meaning you cannot bind it to `0.0.0.0` without modifying the source code before building. If you need external access, you will have to patch the Bridge source to allow different binding addresses.
 
-If you want to run this image in a Kubernetes environment. You can use the [Helm](https://helm.sh/) chart (https://github.com/k8s-at-home/charts/tree/master/charts/stable/protonmail-bridge) created by [@Eagleman7](https://github.com/Eagleman7). More details can be found in [#23](https://github.com/shenxn/protonmail-bridge-docker/issues/23).
+### **Email Sending Issues**
 
-If you don't want to use Helm, you can also reference to the guide ([#6](https://github.com/shenxn/protonmail-bridge-docker/issues/6)) written by [@ghudgins](https://github.com/ghudgins).
+- Ensure that ProtonMail Bridge is running and correctly logged in via the CLI.
+- Verify that SMTP settings are properly configured.
+- If encountering connection issues, confirm that `socat` is correctly forwarding ports.
 
-## Security
+### **ProtonMail Bridge Not Running Properly**
 
-Please be aware that running the command above will expose your bridge to the network. Remember to use firewall if you are going to run this in an untrusted network or on a machine that has public IP address. You can also use the following command to publish the port to only localhost, which is the same behavior as the official bridge package.
+- Check the logs using:
+  ```sh
+  docker logs protonmail-bridge --tail=50
+  ```
+- Ensure that all required dependencies are installed in the container.
+- If the container exits unexpectedly, try running the Bridge manually inside the container to debug:
+  ```sh
+  docker exec -it protonmail-bridge /protonmail/proton-bridge --cli
+  ```
 
-```
-docker run -d --name=protonmail-bridge -v protonmail:/root -p 127.0.0.1:1025:25/tcp -p 127.0.0.1:1143:143/tcp --restart=unless-stopped shenxn/protonmail-bridge
-```
+## 📜 License & Attribution
 
-Besides, you can publish only port 25 (SMTP) if you don't need to receive any email (e.g. as a email notification service).
+This project is licensed under **GPL-3.0** and is **based on** the original work of [shenxn](https://github.com/shenxn/protonmail-bridge-docker).
 
-## Compatibility
+---
 
-The bridge currently only supports some of the email clients. More details can be found on the official website. I've tested this on a Synology DiskStation and it runs well. However, you may need ssh onto it to run the interactive docker command to add your account. The main reason of using this instead of environment variables is that it seems to be the best way to support two-factor authentication.
+Let me know if you'd like to add additional sections like **Known Issues** or **Troubleshooting Tips**! 🚀
 
-## Bridge CLI Guide
-
-The initialization step exposes the bridge CLI so you can do things like switch between combined and split mode, change proxy, etc. The [official guide](https://protonmail.com/support/knowledge-base/bridge-cli-guide/) gives more information on to use the CLI.
-
-## Build
-
-For anyone who want to build this container on your own (for development or security concerns), here is the guide to do so. First, you need to `cd` into the directory (`deb` or `build`, depending on which type of image you want). Then just run the docker build command
-```
-docker build .
-```
-
-That's it. The `Dockerfile` and bash scripts handle all the downloading, building, and packing. You can also add tags, push to your favorite docker registry, or use `buildx` to build multi architecture images.
